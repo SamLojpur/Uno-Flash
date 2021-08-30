@@ -7,11 +7,9 @@ mod sendable_gamestate;
 mod user;
 
 use connections::on_connection;
-use game::generate_deck;
-use gamestate::{GameStatesMutex, Gamestate};
+use gamestate::GameStatesMutex;
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use tokio::sync::RwLock;
 use user::User;
 use uuid::Uuid;
@@ -35,8 +33,8 @@ async fn main() {
     let gamestates = warp::any().map(move || gamestates.clone());
 
     let site = warp::get()
-        .and(warp::fs::dir("client/build/"))
-        .or(warp::fs::file("client/build/index.html"))
+        .and(warp::fs::dir("client/"))
+        .or(warp::fs::file("client/index.html"))
         .with(warp::log("warp::filters::fs"));
     let ws = warp::path("ws").and(warp::ws()).and(gamestates).map(
         |ws: warp::ws::Ws, gamestate: GameStatesMutex| {
