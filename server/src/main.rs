@@ -12,12 +12,11 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use user::User;
-use uuid::Uuid;
 use warp::Filter;
 
 #[tokio::main]
 async fn main() {
-    println!("Uno flash!");
+    println!("Uno flash starting up!");
 
     let (ip, port) = match std::env::var("PORT") {
         Ok(port) => (
@@ -32,10 +31,17 @@ async fn main() {
     let gamestates: GameStatesMutex = Arc::new(RwLock::new(HashMap::new()));
     let gamestates = warp::any().map(move || gamestates.clone());
 
-    let site = warp::get()
-        .and(warp::fs::dir("client/"))
-        .or(warp::fs::file("client/index.html"))
-        .with(warp::log("warp::filters::fs"));
+    let site = match std::env::var("DEV") {
+        Ok(_) => warp::get()
+            .and(warp::fs::dir("../client/build"))
+            .or(warp::fs::file("../client/build/index.html"))
+            .with(warp::log("warp::filters::fs")),
+        Err(_) => warp::get()
+            .and(warp::fs::dir("client/"))
+            .or(warp::fs::file("client/index.html"))
+            .with(warp::log("warp::filters::fs")),
+    };
+
     let ws = warp::path("ws").and(warp::ws()).and(gamestates).map(
         |ws: warp::ws::Ws, gamestate: GameStatesMutex| {
             ws.on_upgrade(move |websocket| on_connection(websocket, gamestate))

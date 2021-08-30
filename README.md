@@ -1,3 +1,13 @@
+## Development
+
+Set the `DEV` environment variable to true:
+
+```
+export DEV=true
+```
+
+This allows the server to find the client build at `client/build`
+
 ## Deploying
 
 To deploy, first login to heroku

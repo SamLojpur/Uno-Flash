@@ -184,21 +184,21 @@ async fn send_gamestate_to_all(gamestate: &Gamestate) {
     }
 }
 
-pub async fn validate_locks(gamestate: &Gamestate) {
-    match gamestate.deck.try_read() {
-        Ok(_) => println!("Deck Ok"),
-        Err(_) => println!("Deck is locked!"),
-    }
-    match gamestate.users.try_read() {
-        Ok(_) => println!("Users Ok"),
-        Err(_) => println!("Users is locked!"),
-    }
-    match gamestate.hands.try_read() {
-        Ok(_) => println!("Hands Ok"),
-        Err(_) => println!("Hands is locked!"),
-    }
-    match gamestate.discard.try_read() {
-        Ok(_) => println!("Discard Ok"),
-        Err(_) => println!("Discard is locked!"),
-    }
-}
+// pub async fn validate_locks(gamestate: &Gamestate) {
+//     match gamestate.deck.try_read() {
+//         Ok(_) => println!("Deck Ok"),
+//         Err(_) => println!("Deck is locked!"),
+//     }
+//     match gamestate.users.try_read() {
+//         Ok(_) => println!("Users Ok"),
+//         Err(_) => println!("Users is locked!"),
+//     }
+//     match gamestate.hands.try_read() {
+//         Ok(_) => println!("Hands Ok"),
+//         Err(_) => println!("Hands is locked!"),
+//     }
+//     match gamestate.discard.try_read() {
+//         Ok(_) => println!("Discard Ok"),
+//         Err(_) => println!("Discard is locked!"),
+//     }
+// }
