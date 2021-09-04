@@ -86,7 +86,9 @@ async fn play_card(gamestate: &Gamestate, card_id: usize, user: &User) -> Result
             .into_iter()
             .map(|card| {
                 let mut my_card = card.clone();
-                my_card.lock_expiry = SystemTime::now() + Duration::from_secs(1);
+                if my_card.lock_expiry < SystemTime::now() + Duration::from_secs(1) {
+                    my_card.lock_expiry = SystemTime::now() + Duration::from_secs(1);
+                }
                 return my_card;
             })
             .collect();

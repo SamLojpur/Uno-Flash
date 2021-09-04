@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
+import { useSpring, animated } from "react-spring";
 import { Lock } from "react-bootstrap-icons";
-
 import { Card } from "react-bootstrap";
 import Color from "color";
 
@@ -25,32 +25,40 @@ const numberMap = {
 };
 
 const UnoCard = ({ card, onClick = () => {} }) => {
-  console.log(card);
-  console.log(card.lock_expiry - Date.now());
   const locked_ms = card.lock_expiry - Date.now();
-  const [locked, setLocked] = useState(locked_ms > 0);
+  const [locked, setLocked] = useState(false);
+
+  const styles = useSpring({
+    reset: !locked,
+    from: { height: 80 },
+    to: { height: 0 },
+    config: { duration: locked_ms },
+  });
 
   useEffect(() => {
-    if (locked_ms > 0) {
+    if (locked_ms > 0 && locked === false) {
+      console.log("locking card " + card.id + " for " + locked_ms);
       setLocked(true);
       setTimeout(() => {
         console.log("unlocking" + card.id);
         setLocked(false);
-      }, 1000);
+      }, locked_ms);
     }
-  }, [card, locked_ms]);
+  }, [card, locked_ms, locked]);
 
   return (
-    <div>
+    <div
+      style={{
+        position: "relative",
+      }}
+    >
       <Card
         onClick={locked ? () => {} : () => onClick(card.id)}
         style={{
           fontSize: "2rem",
           width: "4rem",
           height: "5rem",
-          background: Color(colorMap[card.color] || "grey")
-            .desaturate(locked ? 0.5 : 0)
-            .hex(),
+          background: colorMap[card.color] || "grey",
         }}
       >
         <div
@@ -70,6 +78,21 @@ const UnoCard = ({ card, onClick = () => {} }) => {
           }}
         />
       </Card>
+      {locked && (
+        <animated.div
+          style={{
+            position: "absolute",
+            bottom: 0,
+            height: `${locked_ms}px`,
+            fontSize: "2rem",
+            width: "4rem",
+            // height: "5rem",
+            backgroundColor: Color("black").fade(0.3),
+            borderRadius: "4px",
+            ...styles,
+          }}
+        />
+      )}
     </div>
   );
 };
