@@ -23,10 +23,11 @@ pub enum Value {
     Ten,
     PlusTwo,
     WildCard,
+    Skip,
 }
 
 pub static COLORS: [Color; 4] = [Color::Red, Color::Blue, Color::Yellow, Color::Green];
-pub static VALUES: [Value; 12] = [
+pub static VALUES: [Value; 13] = [
     Value::One,
     Value::Two,
     Value::Three,
@@ -39,12 +40,13 @@ pub static VALUES: [Value; 12] = [
     Value::Ten,
     Value::PlusTwo,
     Value::WildCard,
+    Value::Skip,
 ];
 
 #[derive(Debug, Clone)]
 pub struct Card {
     pub id: Option<usize>,
-    pub color: Color,
+    pub color: Option<Color>,
     pub value: Value,
     pub lock_expiry: SystemTime,
 }

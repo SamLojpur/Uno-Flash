@@ -1,4 +1,4 @@
-use crate::card::{Card, Value, COLORS, VALUES};
+use crate::card::{Card, Color, Value, COLORS, VALUES};
 use crate::connections::user_disconnected;
 use crate::errors::UnoError;
 use crate::gamestate::Gamestate;
@@ -13,19 +13,29 @@ use warp::ws::Message;
 #[derive(Serialize, Deserialize, Debug)]
 enum Action {
     Draw(usize),
-    Play(usize),
+    Play(usize, Option<Color>),
 }
 
 pub fn generate_deck() -> (Vec<Card>, Vec<Card>) {
     let mut deck = Vec::new();
     for color in &COLORS {
         for value in &VALUES {
-            let card = Card {
-                color: color.clone(),
-                value: value.clone(),
-                id: None,
-                lock_expiry: SystemTime::now(),
-            };
+            let card;
+            if value == &Value::WildCard {
+                card = Card {
+                    color: None,
+                    value: value.clone(),
+                    id: None,
+                    lock_expiry: SystemTime::now(),
+                };
+            } else {
+                card = Card {
+                    color: Some(color.clone()),
+                    value: value.clone(),
+                    id: None,
+                    lock_expiry: SystemTime::now(),
+                };
+            }
             deck.push(card);
         }
     }
@@ -35,8 +45,14 @@ pub fn generate_deck() -> (Vec<Card>, Vec<Card>) {
         card.id = Some(i);
     }
 
+    COLORS.choose(&mut rng);
+
     let mut discard = Vec::new();
-    discard.push(deck.pop().unwrap());
+    let mut first_card = deck.pop().unwrap();
+    if first_card.value == Value::WildCard {
+        first_card.color = Some(COLORS.choose(&mut rng).unwrap().clone());
+    }
+    discard.push(first_card);
     return (deck, discard);
 }
 
@@ -56,74 +72,60 @@ pub async fn parse_message_to_action(
     let action: Action = serde_json::from_str(string_message)?;
     match action {
         Action::Draw(val) => draw_card_gamestate(gamestate, val, user.table_pos).await?,
-        Action::Play(card_id) => play_card(gamestate, card_id, &user).await?,
+        Action::Play(card_id, color) => play_card(gamestate, card_id, &user, color).await?,
     }
     Ok(())
 }
 
-async fn play_card(gamestate: &Gamestate, card_id: usize, user: &User) -> Result<(), UnoError> {
+async fn draw_card_gamestate(
+    gamestate: &Gamestate,
+    number: usize,
+    hand_pos: usize,
+) -> Result<(), UnoError> {
+    let mut deck = gamestate.deck.write().await;
+    let mut hands = gamestate.hands.write().await;
+    let mut discard = gamestate.discard.write().await;
+
+    draw_card(number, hand_pos, &mut deck, &mut hands, &mut discard).await
+}
+
+async fn play_card(
+    gamestate: &Gamestate,
+    card_id: usize,
+    user: &User,
+    color: Option<Color>,
+) -> Result<(), UnoError> {
     let mut write_discard = gamestate.discard.write().await;
     let mut write_hands = gamestate.hands.write().await;
     let mut write_deck = gamestate.deck.write().await;
 
-    let table_pos = user.table_pos;
-    let played_card_index = write_hands[&table_pos]
-        .clone()
-        .into_iter()
-        .position(|card| card.id.unwrap() == card_id)
-        .ok_or(UnoError::InvalidState(
-            "Card not found in user's hand".to_string(),
-        ))?;
+    let discarded_card = discard_card(
+        gamestate,
+        user,
+        card_id,
+        color,
+        &mut write_hands,
+        &mut write_discard,
+    )
+    .await?;
 
-    let mut hand = write_hands[&table_pos].clone();
-    let card = hand.get(played_card_index).unwrap();
-
-    if write_discard.last().expect("Discard empty").color == card.color
-        || write_discard.last().expect("Discard empty").value == card.value
-    {
-        let card = hand.remove(played_card_index);
-        if hand.len() == 0 {
-            end_game(gamestate, &user).await;
-        }
-        hand = hand
-            .into_iter()
-            .map(|card| {
-                let mut my_card = card.clone();
-                if my_card.lock_expiry < SystemTime::now() + Duration::from_millis(500) {
-                    my_card.lock_expiry = SystemTime::now() + Duration::from_millis(500);
-                }
-                return my_card;
-            })
-            .collect();
-
-        if card.value == Value::PlusTwo {
-            for index in 0..write_hands.clone().len() {
-                if index != table_pos {
-                    draw_card(
-                        2,
-                        index,
-                        &mut write_deck,
-                        &mut write_hands,
-                        &mut write_discard,
-                    )
-                    .await
-                    .expect("Plus two draw could not occur");
-
-                    println!("wowe");
-                }
+    if discarded_card.value == Value::PlusTwo {
+        for index in 0..write_hands.clone().len() {
+            if index != user.table_pos {
+                draw_card(
+                    2,
+                    index,
+                    &mut write_deck,
+                    &mut write_hands,
+                    &mut write_discard,
+                )
+                .await
+                .expect("Plus two draw could not occur");
             }
         }
-
-        (*write_discard).push(card);
-        (*write_hands).insert(table_pos, hand);
-
-        return Ok(());
-    } else {
-        return Err(UnoError::InvalidMove(format!(
-            "User tried to play {:#?} on a {:#?}",
-            card, write_discard
-        )));
     }
+
+    return Ok(());
 }
 
 async fn end_game(gamestate: &Gamestate, user: &User) {
@@ -156,14 +158,57 @@ async fn draw_card(
     Ok(())
 }
 
-async fn draw_card_gamestate(
+async fn discard_card(
     gamestate: &Gamestate,
-    number: usize,
-    hand_pos: usize,
-) -> Result<(), UnoError> {
-    let mut deck = gamestate.deck.write().await;
-    let mut hands = gamestate.hands.write().await;
-    let mut discard = gamestate.discard.write().await;
+    user: &User,
+    card_id: usize,
+    color: Option<Color>,
+    write_hands: &mut RwLockWriteGuard<'_, HashMap<usize, Vec<Card>>>,
+    write_discard: &mut RwLockWriteGuard<'_, Vec<Card>>,
+) -> Result<Card, UnoError> {
+    let table_pos = user.table_pos;
+    let mut hand = write_hands[&table_pos].clone();
 
-    draw_card(number, hand_pos, &mut deck, &mut hands, &mut discard).await
+    let played_card_index = write_hands[&table_pos]
+        .clone()
+        .into_iter()
+        .position(|card| card.id.unwrap() == card_id)
+        .ok_or(UnoError::InvalidState(
+            "Card not found in user's hand".to_string(),
+        ))?;
+    let card = hand.get(played_card_index).unwrap().clone();
+
+    if write_discard.last().expect("Discard empty").color == card.color
+        || write_discard.last().expect("Discard empty").value == card.value
+        || card.value == Value::WildCard
+    {
+        let mut card = hand.remove(played_card_index);
+        if card.value == Value::WildCard {
+            card.color = color;
+        }
+        if hand.len() == 0 {
+            end_game(gamestate, &user).await;
+        }
+
+        hand = hand
+            .into_iter()
+            .map(|card| {
+                let mut my_card = card.clone();
+                if my_card.lock_expiry < SystemTime::now() + Duration::from_millis(500) {
+                    my_card.lock_expiry = SystemTime::now() + Duration::from_millis(500);
+                }
+                return my_card;
+            })
+            .collect();
+
+        (*write_discard).push(card.clone());
+        (*write_hands).insert(table_pos, hand.clone());
+    } else {
+        return Err(UnoError::InvalidMove(format!(
+            "User tried to play {:#?} on a {:#?}",
+            card, write_discard
+        )));
+    }
+
+    Ok(card.clone())
 }

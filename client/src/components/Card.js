@@ -1,8 +1,10 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useSpring, animated } from "react-spring";
+// TODO stop using 2 icon libs
 import { Lock } from "react-bootstrap-icons";
 import { Card } from "react-bootstrap";
-import AccessAlarmIcon from "@mui/icons-material/AccessAlarm";
+import BlockIcon from "@mui/icons-material/Block";
+import AllInclusiveIcon from "@mui/icons-material/AllInclusive";
 import Color from "color";
 
 const colorMap = {
@@ -24,7 +26,18 @@ const numberMap = {
   Nine: "9",
   Ten: "10",
   PlusTwo: "+2",
-  WildCard: <AccessAlarmIcon />,
+  WildCard: (
+    <AllInclusiveIcon
+      style={{ transform: "translate(0%, -10%)" }}
+      sx={{ fontSize: 32 }}
+    />
+  ),
+  Skip: (
+    <BlockIcon
+      style={{ transform: "translate(0%, -10%)" }}
+      sx={{ fontSize: 32 }}
+    />
+  ),
 };
 
 const UnoCard = ({ card, onClick = () => {} }) => {
@@ -49,6 +62,8 @@ const UnoCard = ({ card, onClick = () => {} }) => {
     }
   }, [card, locked_ms, locked]);
 
+  const isWild = card.value && !card.color;
+
   return (
     <div
       style={{
@@ -56,7 +71,7 @@ const UnoCard = ({ card, onClick = () => {} }) => {
       }}
     >
       <Card
-        onClick={locked ? () => {} : () => onClick(card.id)}
+        onClick={locked || isWild ? () => {} : () => onClick(card.id)}
         style={{
           fontSize: "2rem",
           width: "4rem",
@@ -64,22 +79,90 @@ const UnoCard = ({ card, onClick = () => {} }) => {
           background: colorMap[card.color] || "grey",
         }}
       >
+        {isWild && (
+          <div>
+            <div
+              onClick={
+                locked ? () => {} : () => onClick(card.id, { color: "Red" })
+              }
+              style={{
+                position: "absolute",
+                height: "2.5rem",
+                width: "2rem",
+                top: "-1px",
+                left: "-1px",
+                borderRadius: "4px 0 0 0",
+                backgroundColor: colorMap.Red,
+              }}
+            />
+            <div
+              onClick={
+                locked ? () => {} : () => onClick(card.id, { color: "Blue" })
+              }
+              style={{
+                position: "absolute",
+                height: "2.5rem",
+                width: "2rem",
+                top: "-1px",
+                right: "-1px",
+                borderRadius: "0 4px 0 0",
+                backgroundColor: colorMap.Blue,
+              }}
+            />
+            <div
+              onClick={
+                locked ? () => {} : () => onClick(card.id, { color: "Yellow" })
+              }
+              style={{
+                position: "absolute",
+                height: "2.5rem",
+                width: "2rem",
+                bottom: "-1px",
+                left: "-1px",
+                borderRadius: "0 0 0 4px",
+                backgroundColor: colorMap.Yellow,
+              }}
+            />
+            <div
+              onClick={
+                locked ? () => {} : () => onClick(card.id, { color: "Green" })
+              }
+              style={{
+                position: "absolute",
+                height: "2.5rem",
+                width: "2rem",
+                bottom: "-1px",
+                right: "-1px",
+                borderRadius: "0 0 4px 0",
+                backgroundColor: colorMap.Green,
+              }}
+            />
+          </div>
+        )}
+
         <div
           style={{
-            marginTop: "1rem",
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            color: isWild ? "white" : "black",
+            pointerEvents: "none",
           }}
         >
-          {card.color && card.value ? numberMap[card.value] : "?"}
+          {card.value ? numberMap[card.value] : ""}
         </div>
-        <Lock
-          size={locked ? 60 : 0}
+
+        <div
           style={{
             position: "absolute",
             top: "50%",
             left: "50%",
             transform: "translate(-50%, -50%)",
           }}
-        />
+        >
+          <Lock size={locked ? 60 : 0} />
+        </div>
       </Card>
       {locked && (
         <animated.div

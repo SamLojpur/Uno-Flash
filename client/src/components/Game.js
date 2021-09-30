@@ -59,7 +59,6 @@ const Game = ({ user }) => {
 
     webSocket.onmessage = function (event) {
       const gamestate = JSON.parse(event.data);
-      console.log(gamestate);
       Cookies.set("user_id", gamestate.user_id);
 
       if (!url_params.room_id || url_params.room_id === "unknown") {
@@ -70,9 +69,9 @@ const Game = ({ user }) => {
     setWebSocket(webSocket);
   }, []);
 
-  const sendToDiscard = (source, id) => {
+  const sendToDiscard = (source, id, options) => {
     const [val, newHand] = array_remove_by_id(gamestate.hands[source], id);
-    webSocket.send(JSON.stringify({ Play: id }));
+    webSocket.send(JSON.stringify({ Play: [id, options?.color] }));
     setGamestate({
       ...gamestate,
       hands: {

@@ -2,8 +2,8 @@ import React from "react";
 import UnoCard from "./Card";
 
 const Hand = ({ handId, cards, isVertical = false, sendToDiscard }) => {
-  const playCard = (id) => {
-    sendToDiscard(handId, id);
+  const playCard = (id, options) => {
+    sendToDiscard(handId, id, options);
   };
 
   return (

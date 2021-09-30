@@ -49,9 +49,6 @@ async fn main() {
     );
 
     let routes = warp::get().and(ws).or(site);
-    // .and(site.or(ws));
-
-    // let lock_expiry = SystemTime::now() + Duration::from_secs(3);
 
     warp::serve(routes).run((ip, port)).await;
 }
