@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useSpring, animated } from "react-spring";
 import { Lock } from "react-bootstrap-icons";
 import { Card } from "react-bootstrap";
+import AccessAlarmIcon from "@mui/icons-material/AccessAlarm";
 import Color from "color";
 
 const colorMap = {
@@ -22,6 +23,8 @@ const numberMap = {
   Eight: "8",
   Nine: "9",
   Ten: "10",
+  PlusTwo: "+2",
+  WildCard: <AccessAlarmIcon />,
 };
 
 const UnoCard = ({ card, onClick = () => {} }) => {

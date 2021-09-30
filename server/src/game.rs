@@ -1,11 +1,13 @@
-use crate::card::{Card, COLORS, VALUES};
+use crate::card::{Card, Value, COLORS, VALUES};
 use crate::connections::user_disconnected;
 use crate::errors::UnoError;
 use crate::gamestate::Gamestate;
 use crate::User;
 use rand::seq::SliceRandom;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::time::{Duration, SystemTime};
+use tokio::sync::RwLockWriteGuard;
 use warp::ws::Message;
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -53,7 +55,7 @@ pub async fn parse_message_to_action(
 
     let action: Action = serde_json::from_str(string_message)?;
     match action {
-        Action::Draw(val) => draw_card(gamestate, val, user.table_pos).await?,
+        Action::Draw(val) => draw_card_gamestate(gamestate, val, user.table_pos).await?,
         Action::Play(card_id) => play_card(gamestate, card_id, &user).await?,
     }
     Ok(())
@@ -62,6 +64,7 @@ pub async fn parse_message_to_action(
 async fn play_card(gamestate: &Gamestate, card_id: usize, user: &User) -> Result<(), UnoError> {
     let mut write_discard = gamestate.discard.write().await;
     let mut write_hands = gamestate.hands.write().await;
+    let mut write_deck = gamestate.deck.write().await;
 
     let table_pos = user.table_pos;
     let played_card_index = write_hands[&table_pos]
@@ -82,19 +85,38 @@ async fn play_card(gamestate: &Gamestate, card_id: usize, user: &User) -> Result
         if hand.len() == 0 {
             end_game(gamestate, &user).await;
         }
-        let hand_delayed = hand
+        hand = hand
             .into_iter()
             .map(|card| {
                 let mut my_card = card.clone();
-                if my_card.lock_expiry < SystemTime::now() + Duration::from_secs(1) {
-                    my_card.lock_expiry = SystemTime::now() + Duration::from_secs(1);
+                if my_card.lock_expiry < SystemTime::now() + Duration::from_millis(500) {
+                    my_card.lock_expiry = SystemTime::now() + Duration::from_millis(500);
                 }
                 return my_card;
             })
             .collect();
 
+        if card.value == Value::PlusTwo {
+            for index in 0..write_hands.clone().len() {
+                if index != table_pos {
+                    draw_card(
+                        2,
+                        index,
+                        &mut write_deck,
+                        &mut write_hands,
+                        &mut write_discard,
+                    )
+                    .await
+                    .expect("Plus two draw could not occur");
+
+                    println!("wowe");
+                }
+            }
+        }
+
         (*write_discard).push(card);
-        (*write_hands).insert(table_pos, hand_delayed);
+        (*write_hands).insert(table_pos, hand);
+
         return Ok(());
     } else {
         return Err(UnoError::InvalidMove(format!(
@@ -110,9 +132,13 @@ async fn end_game(gamestate: &Gamestate, user: &User) {
     *winner = Some(user.uuid);
 }
 
-async fn draw_card(gamestate: &Gamestate, number: usize, hand_pos: usize) -> Result<(), UnoError> {
-    let mut deck = gamestate.deck.write().await;
-    let mut hands = gamestate.hands.write().await;
+async fn draw_card(
+    number: usize,
+    hand_pos: usize,
+    deck: &mut RwLockWriteGuard<'_, Vec<Card>>,
+    hands: &mut RwLockWriteGuard<'_, HashMap<usize, Vec<Card>>>,
+    discard: &mut RwLockWriteGuard<'_, Vec<Card>>,
+) -> Result<(), UnoError> {
     let mut hand = hands.get(&hand_pos).unwrap().clone();
     for _ in 0..number {
         let mut card = deck.pop().unwrap();
@@ -120,8 +146,7 @@ async fn draw_card(gamestate: &Gamestate, number: usize, hand_pos: usize) -> Res
         hand.push(card);
         println!("{}", deck.len());
         if deck.len() <= 0 {
-            let mut discard = gamestate.discard.write().await;
-            deck.append(&mut discard);
+            deck.append(discard);
             discard.push(deck.pop().unwrap());
             let mut rng = rand::thread_rng();
             deck.shuffle(&mut rng);
@@ -129,4 +154,16 @@ async fn draw_card(gamestate: &Gamestate, number: usize, hand_pos: usize) -> Res
     }
     hands.insert(hand_pos, hand);
     Ok(())
+}
+
+async fn draw_card_gamestate(
+    gamestate: &Gamestate,
+    number: usize,
+    hand_pos: usize,
+) -> Result<(), UnoError> {
+    let mut deck = gamestate.deck.write().await;
+    let mut hands = gamestate.hands.write().await;
+    let mut discard = gamestate.discard.write().await;
+
+    draw_card(number, hand_pos, &mut deck, &mut hands, &mut discard).await
 }

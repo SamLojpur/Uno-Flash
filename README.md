@@ -8,6 +8,12 @@ export DEV=true
 
 This allows the server to find the client build at `client/build`
 
+`cd server`
+`cargo run`
+
+`cd client`
+`cargo run`
+
 ## Deploying
 
 To deploy, first login to heroku

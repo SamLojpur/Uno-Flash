@@ -21,10 +21,12 @@ pub enum Value {
     Eight,
     Nine,
     Ten,
+    PlusTwo,
+    WildCard,
 }
 
 pub static COLORS: [Color; 4] = [Color::Red, Color::Blue, Color::Yellow, Color::Green];
-pub static VALUES: [Value; 10] = [
+pub static VALUES: [Value; 12] = [
     Value::One,
     Value::Two,
     Value::Three,
@@ -35,6 +37,8 @@ pub static VALUES: [Value; 10] = [
     Value::Eight,
     Value::Nine,
     Value::Ten,
+    Value::PlusTwo,
+    Value::WildCard,
 ];
 
 #[derive(Debug, Clone)]

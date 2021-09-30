@@ -6,7 +6,8 @@
 FROM node:12.18.1 as npm-builder
 WORKDIR /uno-flash
 COPY client .
-RUN npm run build .
+# RUN npm install
+RUN yarn build .
 
 FROM rust:latest as rust-builder
 # Prevent complete rebuild of all dependencies when only src has changed
