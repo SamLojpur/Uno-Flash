@@ -125,6 +125,32 @@ async fn play_card(
         }
     }
 
+    if discarded_card.value == Value::Skip {
+        for index in 0..write_hands.clone().len() {
+            if index != user.table_pos {
+                let mut hand = write_hands[&index].clone();
+                let hand_length = hand.len();
+
+                hand = hand
+                    .into_iter()
+                    .enumerate()
+                    .map(|(i, card)| {
+                        let mut my_card = card.clone();
+                        if i * 2 < hand_length {
+                            if my_card.lock_expiry < SystemTime::now() + Duration::from_millis(5) {
+                                my_card.lock_expiry = SystemTime::now() + Duration::from_millis(5);
+                            }
+                        }
+
+                        return my_card;
+                    })
+                    .collect();
+
+                (*write_hands).insert(index, hand.clone());
+            }
+        }
+    }
+
     return Ok(());
 }
 
