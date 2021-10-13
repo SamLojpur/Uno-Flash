@@ -11,6 +11,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SendableGamestate {
     room_id: String,
+    game_started: bool,
     winner: Option<String>,
     user_id: String,
     table_pos: u128,
@@ -105,6 +106,7 @@ pub async fn get_sendable_gamestate(gamestate: &Gamestate, user: &User) -> Senda
         .collect();
     let room_id = gamestate.room_id.to_string();
     let user_id = user.uuid.to_string();
+    let game_started = *gamestate.game_started.read().await;
     let table_pos = user.table_pos;
     let deck: Vec<AnonymousCard> = gamestate
         .deck
@@ -156,6 +158,7 @@ pub async fn get_sendable_gamestate(gamestate: &Gamestate, user: &User) -> Senda
 
     return SendableGamestate {
         users,
+        game_started,
         winner,
         room_id,
         user_id,

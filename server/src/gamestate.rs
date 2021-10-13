@@ -19,7 +19,7 @@ pub type GameStatesMutex = Arc<RwLock<HashMap<u128, Gamestate>>>;
 #[derive(Clone)]
 pub struct Gamestate {
     pub room_id: u128,
-    pub game_started: bool,
+    pub game_started: Arc<RwLock<bool>>,
     pub winner: Arc<RwLock<Option<u128>>>,
     pub users: UsersMutex,
     pub discard: DiscardMutex,
@@ -32,7 +32,7 @@ pub fn new_game() -> Gamestate {
     let (deck, discard) = generate_deck();
     Gamestate {
         room_id,
-        game_started: false,
+        game_started: Arc::new(RwLock::new(false)),
         winner: Arc::new(RwLock::new(None)),
         users: Arc::new(RwLock::new(HashMap::new())),
         deck: Arc::new(RwLock::new(deck)),

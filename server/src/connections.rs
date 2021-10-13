@@ -21,7 +21,6 @@ struct Introduction {
 }
 
 pub async fn on_connection(ws: WebSocket, gamestates: GameStatesMutex) {
-    // validate_locks(&gamestate).await;
     let (tx, rx): (
         UnboundedSender<Result<Message, warp::Error>>,
         UnboundedReceiver<Result<Message, warp::Error>>,
@@ -47,30 +46,33 @@ pub async fn on_connection(ws: WebSocket, gamestates: GameStatesMutex) {
     {
         let gamestate_lock = gamestates.read().await;
         let gamestate = gamestate_lock.get(&room_id).unwrap();
+        validate_locks(&gamestate).await;
         let user_lock = gamestate.users.read().await;
         let user = user_lock.get(&user_id).unwrap();
-        // deal_hand(&gamestate, &user).await;
+        deal_hand(&gamestate, &user).await;
         send_gamestate_to_all(&gamestate).await;
     }
 
     while let Some(result) = user_ws_rx.next().await {
         let gamestate_lock = gamestates.read().await;
         let gamestate = gamestate_lock.get(&room_id).unwrap();
-        let user_lock = gamestate.users.read().await;
-        let user = user_lock.get(&user_id).unwrap();
+        validate_locks(&gamestate).await;
         let msg = match result {
             Ok(msg) => msg,
             Err(e) => {
-                eprintln!("websocket error(uid={}): {}", user.uuid, e);
+                eprintln!("websocket error(uid={}): {}", user_id, e);
                 break;
             }
         };
 
-        match parse_lobby_message_to_action(&gamestate, msg, &user).await {
+        match parse_lobby_message_to_action(&gamestate, msg, &user_id).await {
             Ok(_) => (),
             Err(e) => println!("Error: {:#?}", e),
         }
         send_gamestate_to_all(&gamestate).await;
+        if *gamestate.game_started.read().await {
+            break;
+        }
     }
 
     while let Some(result) = user_ws_rx.next().await {
@@ -111,6 +113,11 @@ async fn introduce(
     tx: mpsc::UnboundedSender<Result<Message, warp::Error>>,
 ) -> Result<(u128, u128), UnoError> {
     let string_message = message.to_str()?;
+    println!(
+        "incoming intro message: {:?}",
+        // serde_json::to_string(&LobbyAction::StartGame()).unwrap(),
+        string_message,
+    );
     let intro: Introduction = serde_json::from_str(string_message)?;
 
     let room_id = match intro.room_id {
@@ -206,21 +213,38 @@ async fn send_gamestate_to_all(gamestate: &Gamestate) {
     }
 }
 
-// pub async fn validate_locks(gamestate: &Gamestate) {
-//     match gamestate.deck.try_read() {
-//         Ok(_) => println!("Deck Ok"),
-//         Err(_) => println!("Deck is locked!"),
-//     }
-//     match gamestate.users.try_read() {
-//         Ok(_) => println!("Users Ok"),
-//         Err(_) => println!("Users is locked!"),
-//     }
-//     match gamestate.hands.try_read() {
-//         Ok(_) => println!("Hands Ok"),
-//         Err(_) => println!("Hands is locked!"),
-//     }
-//     match gamestate.discard.try_read() {
-//         Ok(_) => println!("Discard Ok"),
-//         Err(_) => println!("Discard is locked!"),
-//     }
-// }
+pub async fn validate_locks(gamestate: &Gamestate) {
+    match gamestate.deck.try_read() {
+        Ok(_) => println!("Deck Read Ok"),
+        Err(_) => println!("Deck Read is locked!"),
+    }
+    match gamestate.users.try_read() {
+        Ok(_) => println!("Users Read Ok"),
+        Err(_) => println!("Users Read is locked!"),
+    }
+    match gamestate.hands.try_read() {
+        Ok(_) => println!("Hands Read Ok"),
+        Err(_) => println!("Hands Read is locked!"),
+    }
+    match gamestate.discard.try_read() {
+        Ok(_) => println!("Discard Read Ok"),
+        Err(_) => println!("Discard Read is locked!"),
+    }
+
+    match gamestate.deck.try_write() {
+        Ok(_) => println!("Deck Write Ok"),
+        Err(_) => println!("Deck Write is locked!"),
+    }
+    match gamestate.users.try_write() {
+        Ok(_) => println!("Users write Ok"),
+        Err(_) => println!("Users write is locked!"),
+    }
+    match gamestate.hands.try_write() {
+        Ok(_) => println!("Hands write Ok"),
+        Err(_) => println!("Hands write is locked!"),
+    }
+    match gamestate.discard.try_write() {
+        Ok(_) => println!("Discard write Ok"),
+        Err(_) => println!("Discard write is locked!"),
+    }
+}
