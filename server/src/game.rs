@@ -6,14 +6,15 @@ use crate::User;
 use rand::seq::SliceRandom;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::convert::TryInto;
 use std::time::{Duration, SystemTime};
 use tokio::sync::RwLockWriteGuard;
 use warp::ws::Message;
 
 #[derive(Serialize, Deserialize, Debug)]
 enum Action {
-    Draw(usize),
-    Play(usize, Option<Color>),
+    Draw(u128),
+    Play(u128, Option<Color>),
 }
 
 pub fn generate_deck() -> (Vec<Card>, Vec<Card>) {
@@ -42,7 +43,7 @@ pub fn generate_deck() -> (Vec<Card>, Vec<Card>) {
     let mut rng = rand::thread_rng();
     deck.shuffle(&mut rng);
     for (i, card) in deck.iter_mut().enumerate() {
-        card.id = Some(i);
+        card.id = Some(i.try_into().unwrap());
     }
 
     COLORS.choose(&mut rng);
@@ -79,8 +80,8 @@ pub async fn parse_message_to_action(
 
 async fn draw_card_gamestate(
     gamestate: &Gamestate,
-    number: usize,
-    hand_pos: usize,
+    number: u128,
+    hand_pos: u128,
 ) -> Result<(), UnoError> {
     let mut deck = gamestate.deck.write().await;
     let mut hands = gamestate.hands.write().await;
@@ -91,7 +92,7 @@ async fn draw_card_gamestate(
 
 async fn play_card(
     gamestate: &Gamestate,
-    card_id: usize,
+    card_id: u128,
     user: &User,
     color: Option<Color>,
 ) -> Result<(), UnoError> {
@@ -110,7 +111,7 @@ async fn play_card(
     .await?;
 
     if discarded_card.value == Value::PlusTwo {
-        for index in 0..write_hands.clone().len() {
+        for index in 0..write_hands.clone().len().try_into().unwrap() {
             if index != user.table_pos {
                 draw_card(
                     2,
@@ -126,7 +127,7 @@ async fn play_card(
     }
 
     if discarded_card.value == Value::Skip {
-        for index in 0..write_hands.clone().len() {
+        for index in 0..write_hands.clone().len().try_into().unwrap() {
             if index != user.table_pos {
                 let mut hand = write_hands[&index].clone();
                 let hand_length = hand.len();
@@ -161,10 +162,10 @@ async fn end_game(gamestate: &Gamestate, user: &User) {
 }
 
 async fn draw_card(
-    number: usize,
-    hand_pos: usize,
+    number: u128,
+    hand_pos: u128,
     deck: &mut RwLockWriteGuard<'_, Vec<Card>>,
-    hands: &mut RwLockWriteGuard<'_, HashMap<usize, Vec<Card>>>,
+    hands: &mut RwLockWriteGuard<'_, HashMap<u128, Vec<Card>>>,
     discard: &mut RwLockWriteGuard<'_, Vec<Card>>,
 ) -> Result<(), UnoError> {
     let mut hand = hands.get(&hand_pos).unwrap().clone();
@@ -187,9 +188,9 @@ async fn draw_card(
 async fn discard_card(
     gamestate: &Gamestate,
     user: &User,
-    card_id: usize,
+    card_id: u128,
     color: Option<Color>,
-    write_hands: &mut RwLockWriteGuard<'_, HashMap<usize, Vec<Card>>>,
+    write_hands: &mut RwLockWriteGuard<'_, HashMap<u128, Vec<Card>>>,
     write_discard: &mut RwLockWriteGuard<'_, Vec<Card>>,
 ) -> Result<Card, UnoError> {
     let table_pos = user.table_pos;

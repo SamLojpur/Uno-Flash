@@ -13,12 +13,13 @@ use uuid::Uuid;
 pub type UsersMutex = Arc<RwLock<HashMap<u128, User>>>;
 pub type DiscardMutex = Arc<RwLock<Vec<Card>>>;
 pub type DeckMutex = Arc<RwLock<Vec<Card>>>;
-pub type HandsMutex = Arc<RwLock<HashMap<usize, Vec<Card>>>>;
+pub type HandsMutex = Arc<RwLock<HashMap<u128, Vec<Card>>>>;
 pub type GameStatesMutex = Arc<RwLock<HashMap<u128, Gamestate>>>;
 
 #[derive(Clone)]
 pub struct Gamestate {
     pub room_id: u128,
+    pub game_started: bool,
     pub winner: Arc<RwLock<Option<u128>>>,
     pub users: UsersMutex,
     pub discard: DiscardMutex,
@@ -31,6 +32,7 @@ pub fn new_game() -> Gamestate {
     let (deck, discard) = generate_deck();
     Gamestate {
         room_id,
+        game_started: false,
         winner: Arc::new(RwLock::new(None)),
         users: Arc::new(RwLock::new(HashMap::new())),
         deck: Arc::new(RwLock::new(deck)),

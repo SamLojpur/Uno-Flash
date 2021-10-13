@@ -3,6 +3,7 @@ mod connections;
 mod errors;
 mod game;
 mod gamestate;
+mod lobby;
 mod sendable_gamestate;
 mod user;
 

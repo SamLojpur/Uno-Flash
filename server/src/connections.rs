@@ -1,10 +1,12 @@
 use crate::errors::UnoError;
 use crate::game::parse_message_to_action;
 use crate::gamestate::{new_game, GameStatesMutex, Gamestate};
+use crate::lobby::parse_lobby_message_to_action;
 use crate::sendable_gamestate::{get_sendable_gamestate, SendableGamestate};
 use crate::User;
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
+use std::convert::TryInto;
 use tokio::sync::mpsc;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use tokio_stream::wrappers::UnboundedReceiverStream;
@@ -47,9 +49,30 @@ pub async fn on_connection(ws: WebSocket, gamestates: GameStatesMutex) {
         let gamestate = gamestate_lock.get(&room_id).unwrap();
         let user_lock = gamestate.users.read().await;
         let user = user_lock.get(&user_id).unwrap();
-        deal_hand(&gamestate, &user).await;
+        // deal_hand(&gamestate, &user).await;
         send_gamestate_to_all(&gamestate).await;
     }
+
+    while let Some(result) = user_ws_rx.next().await {
+        let gamestate_lock = gamestates.read().await;
+        let gamestate = gamestate_lock.get(&room_id).unwrap();
+        let user_lock = gamestate.users.read().await;
+        let user = user_lock.get(&user_id).unwrap();
+        let msg = match result {
+            Ok(msg) => msg,
+            Err(e) => {
+                eprintln!("websocket error(uid={}): {}", user.uuid, e);
+                break;
+            }
+        };
+
+        match parse_lobby_message_to_action(&gamestate, msg, &user).await {
+            Ok(_) => (),
+            Err(e) => println!("Error: {:#?}", e),
+        }
+        send_gamestate_to_all(&gamestate).await;
+    }
+
     while let Some(result) = user_ws_rx.next().await {
         let gamestate_lock = gamestates.read().await;
         let gamestate = gamestate_lock.get(&room_id).unwrap();
@@ -68,7 +91,6 @@ pub async fn on_connection(ws: WebSocket, gamestates: GameStatesMutex) {
         }
         send_gamestate_to_all(&gamestate).await;
     }
-    println!("supper")
 }
 
 pub async fn deal_hand(gamestate: &Gamestate, user: &User) {
@@ -115,7 +137,7 @@ async fn introduce(
             let user = User {
                 uuid,
                 tx,
-                table_pos: users.len(),
+                table_pos: users.len().try_into().unwrap(),
                 name: intro.name,
             };
             users.insert(uuid, user.clone());
@@ -142,7 +164,7 @@ async fn introduce(
                 None => User {
                     uuid,
                     tx,
-                    table_pos: users.len(),
+                    table_pos: users.len().try_into().unwrap(),
                     name: intro.name,
                 },
             };

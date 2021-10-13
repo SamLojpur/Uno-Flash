@@ -45,7 +45,7 @@ pub static VALUES: [Value; 13] = [
 
 #[derive(Debug, Clone)]
 pub struct Card {
-    pub id: Option<usize>,
+    pub id: Option<u128>,
     pub color: Option<Color>,
     pub value: Value,
     pub lock_expiry: SystemTime,

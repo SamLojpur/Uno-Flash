@@ -13,17 +13,17 @@ pub struct SendableGamestate {
     room_id: String,
     winner: Option<String>,
     user_id: String,
-    table_pos: usize,
+    table_pos: u128,
     discard: Vec<SendableCard>,
     deck: Vec<AnonymousCard>,
-    hands: HashMap<usize, PossiblyAnonHand>,
+    hands: HashMap<u128, PossiblyAnonHand>,
     users: Vec<SendableUser>,
     test: (SendableCard, Color),
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SendableUser {
-    pub table_pos: usize,
+    pub table_pos: u128,
     pub name: Option<String>,
     pub uuid: String,
 }
@@ -40,7 +40,7 @@ impl From<User> for SendableUser {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SendableCard {
-    pub id: Option<usize>,
+    pub id: Option<u128>,
     pub color: Option<Color>,
     pub value: Value,
     pub lock_expiry: u128,
@@ -48,7 +48,7 @@ pub struct SendableCard {
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct AnonymousCard {
-    pub id: Option<usize>,
+    pub id: Option<u128>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -115,7 +115,7 @@ pub async fn get_sendable_gamestate(gamestate: &Gamestate, user: &User) -> Senda
         .map(|card: Card| AnonymousCard::from(card))
         .collect();
 
-    let hands: HashMap<usize, PossiblyAnonHand> = gamestate
+    let hands: HashMap<u128, PossiblyAnonHand> = gamestate
         .hands
         .read()
         .await
