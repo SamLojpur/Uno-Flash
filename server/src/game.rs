@@ -2,6 +2,7 @@ use crate::card::{Card, Color, Value, COLORS, VALUES};
 use crate::connections::user_disconnected;
 use crate::errors::UnoError;
 use crate::gamestate::Gamestate;
+use crate::lobby::parse_lobby_string_to_action;
 use crate::User;
 use rand::seq::SliceRandom;
 use serde::{Deserialize, Serialize};
@@ -60,50 +61,82 @@ pub fn generate_deck() -> (Vec<Card>, Vec<Card>) {
 pub async fn parse_message_to_action(
     gamestate: &Gamestate,
     message: Message,
-    user: &User,
+    user_id: &u128,
 ) -> Result<(), UnoError> {
     if message.is_close() {
-        user_disconnected(gamestate, user.uuid).await;
+        user_disconnected(gamestate, user_id).await;
         return Ok(());
     }
 
     let string_message = message.to_str()?;
     println!("incoming message: {}", string_message);
 
-    let action: Action = serde_json::from_str(string_message)?;
-    match action {
-        Action::Draw(val) => draw_card_gamestate(gamestate, val, user.table_pos).await?,
-        Action::Play(card_id, color) => play_card(gamestate, card_id, &user, color).await?,
+    if *gamestate.game_started.read().await {
+        parse_game_string_to_action(&gamestate, &user_id, &string_message).await?;
+    } else {
+        parse_lobby_string_to_action(&gamestate, &user_id, &string_message).await?;
     }
     Ok(())
 }
 
+pub async fn parse_game_string_to_action(
+    gamestate: &Gamestate,
+    user_id: &u128,
+    string_message: &str,
+) -> Result<(), UnoError> {
+    let action: Action = serde_json::from_str(string_message)?;
+
+    match action {
+        Action::Draw(val) => draw_card_gamestate(gamestate, user_id, val).await?,
+        Action::Play(card_id, color) => play_card(gamestate, user_id, card_id, color).await?,
+    }
+    Ok(())
+}
+
+async fn get_table_pos(
+    users: &tokio::sync::RwLockReadGuard<'_, std::collections::HashMap<u128, User>>,
+    user_id: &u128,
+) -> Result<u128, UnoError> {
+    let table_pos = users
+        .iter()
+        .find_map(|(&uuid, user)| if &uuid == user_id { Some(user) } else { None })
+        .unwrap()
+        .table_pos;
+    return Ok(table_pos);
+}
+
 async fn draw_card_gamestate(
     gamestate: &Gamestate,
+    user_id: &u128,
     number: u128,
-    hand_pos: u128,
 ) -> Result<(), UnoError> {
+    let users = gamestate.users.read().await;
     let mut deck = gamestate.deck.write().await;
     let mut hands = gamestate.hands.write().await;
     let mut discard = gamestate.discard.write().await;
 
-    draw_card(number, hand_pos, &mut deck, &mut hands, &mut discard).await
+    let table_pos = get_table_pos(&users, user_id).await?;
+    draw_card(number, table_pos, &mut deck, &mut hands, &mut discard).await
 }
 
 async fn play_card(
     gamestate: &Gamestate,
+    user_id: &u128,
     card_id: u128,
-    user: &User,
     color: Option<Color>,
 ) -> Result<(), UnoError> {
+    let users = gamestate.users.read().await;
     let mut write_discard = gamestate.discard.write().await;
     let mut write_hands = gamestate.hands.write().await;
     let mut write_deck = gamestate.deck.write().await;
 
+    let table_pos = get_table_pos(&users, user_id).await?;
+
     let discarded_card = discard_card(
         gamestate,
-        user,
+        user_id,
         card_id,
+        table_pos,
         color,
         &mut write_hands,
         &mut write_discard,
@@ -112,7 +145,7 @@ async fn play_card(
 
     if discarded_card.value == Value::PlusTwo {
         for index in 0..write_hands.clone().len().try_into().unwrap() {
-            if index != user.table_pos {
+            if index != table_pos {
                 draw_card(
                     2,
                     index,
@@ -128,7 +161,7 @@ async fn play_card(
 
     if discarded_card.value == Value::Skip {
         for index in 0..write_hands.clone().len().try_into().unwrap() {
-            if index != user.table_pos {
+            if index != table_pos {
                 let mut hand = write_hands[&index].clone();
                 let hand_length = hand.len();
 
@@ -155,10 +188,10 @@ async fn play_card(
     return Ok(());
 }
 
-async fn end_game(gamestate: &Gamestate, user: &User) {
+async fn end_game(gamestate: &Gamestate, user_id: &u128) {
     println!("Winner");
     let mut winner = gamestate.winner.write().await;
-    *winner = Some(user.uuid);
+    *winner = Some(*user_id);
 }
 
 async fn draw_card(
@@ -187,13 +220,13 @@ async fn draw_card(
 
 async fn discard_card(
     gamestate: &Gamestate,
-    user: &User,
+    user_id: &u128,
     card_id: u128,
+    table_pos: u128,
     color: Option<Color>,
     write_hands: &mut RwLockWriteGuard<'_, HashMap<u128, Vec<Card>>>,
     write_discard: &mut RwLockWriteGuard<'_, Vec<Card>>,
 ) -> Result<Card, UnoError> {
-    let table_pos = user.table_pos;
     let mut hand = write_hands[&table_pos].clone();
 
     let played_card_index = write_hands[&table_pos]
@@ -214,7 +247,7 @@ async fn discard_card(
             card.color = color;
         }
         if hand.len() == 0 {
-            end_game(gamestate, &user).await;
+            end_game(gamestate, user_id).await;
         }
 
         hand = hand

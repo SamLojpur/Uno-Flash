@@ -15,7 +15,7 @@ const Hand = ({ handId, cards, isVertical = false, sendToDiscard }) => {
         alignItems: "center",
       }}
     >
-      {cards.map((card, i) => (
+      {cards.map((card) => (
         <UnoCard key={card.id} card={card} onClick={playCard} />
       ))}
     </div>

@@ -32,11 +32,11 @@ const Lobby = ({ setUser }) => {
       >
         <Card style={{ width: "25rem", padding: "1rem" }}>
           <Card.Body>
-            <label for="username">Username</label>
+            <label>Username</label>
 
             <input
               id="username"
-              class="form-control"
+              className="form-control"
               type="text"
               placeholder="Xx_Haxorman420_xX"
               label={username}

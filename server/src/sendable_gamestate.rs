@@ -124,7 +124,7 @@ pub async fn get_sendable_gamestate(gamestate: &Gamestate, user: &User) -> Senda
         .clone()
         .into_iter()
         .map(|(hand_id, hand)| {
-            if hand_id == user.table_pos {
+            if hand_id == user.table_pos && game_started {
                 return (
                     hand_id,
                     PossiblyAnonHand::SendableHand(

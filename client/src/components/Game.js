@@ -5,6 +5,7 @@ import Deck from "./Deck";
 import Cookies from "js-cookie";
 import { useHistory, useParams } from "react-router-dom";
 import WinnerModal from "./WinnerModal";
+import LobbyModal from "./LobbyModal";
 
 const array_remove_by_id = (array, id) => {
   const from = get_index_from_id(array, id);
@@ -65,6 +66,7 @@ const Game = ({ user }) => {
         history.replace(gamestate.room_id);
       }
       setGamestate(gamestate);
+      console.log(gamestate);
     };
     setWebSocket(webSocket);
   }, []);
@@ -79,6 +81,14 @@ const Game = ({ user }) => {
       },
       discard: [val, ...gamestate.discard],
     });
+  };
+
+  const startGame = () => {
+    webSocket.send(JSON.stringify({ StartGame: [] }));
+  };
+
+  const setName = (name) => {
+    webSocket.send(JSON.stringify({ SetName: name }));
   };
 
   const drawCard = () => {
@@ -103,6 +113,16 @@ const Game = ({ user }) => {
 
   return (
     <>
+      {!gamestate.game_started && (
+        <LobbyModal
+          gamestate={gamestate}
+          startGame={startGame}
+          setName={setName}
+          show={true}
+          onHide={() => {}}
+        />
+      )}
+
       <WinnerModal
         show={!!gamestate.winner}
         winnerText={winnerText}

@@ -1,7 +1,6 @@
 use crate::errors::UnoError;
 use crate::game::parse_message_to_action;
 use crate::gamestate::{new_game, GameStatesMutex, Gamestate};
-use crate::lobby::parse_lobby_message_to_action;
 use crate::sendable_gamestate::{get_sendable_gamestate, SendableGamestate};
 use crate::User;
 use futures::StreamExt;
@@ -46,7 +45,12 @@ pub async fn on_connection(ws: WebSocket, gamestates: GameStatesMutex) {
     {
         let gamestate_lock = gamestates.read().await;
         let gamestate = gamestate_lock.get(&room_id).unwrap();
-        validate_locks(&gamestate).await;
+        send_gamestate_to_all(&gamestate).await;
+    }
+
+    {
+        let gamestate_lock = gamestates.read().await;
+        let gamestate = gamestate_lock.get(&room_id).unwrap();
         let user_lock = gamestate.users.read().await;
         let user = user_lock.get(&user_id).unwrap();
         deal_hand(&gamestate, &user).await;
@@ -56,38 +60,14 @@ pub async fn on_connection(ws: WebSocket, gamestates: GameStatesMutex) {
     while let Some(result) = user_ws_rx.next().await {
         let gamestate_lock = gamestates.read().await;
         let gamestate = gamestate_lock.get(&room_id).unwrap();
-        validate_locks(&gamestate).await;
         let msg = match result {
             Ok(msg) => msg,
-            Err(e) => {
-                eprintln!("websocket error(uid={}): {}", user_id, e);
+            Err(_e) => {
+                // eprintln!("websocket error(uid={}): {}", user.uuid, e);
                 break;
             }
         };
-
-        match parse_lobby_message_to_action(&gamestate, msg, &user_id).await {
-            Ok(_) => (),
-            Err(e) => println!("Error: {:#?}", e),
-        }
-        send_gamestate_to_all(&gamestate).await;
-        if *gamestate.game_started.read().await {
-            break;
-        }
-    }
-
-    while let Some(result) = user_ws_rx.next().await {
-        let gamestate_lock = gamestates.read().await;
-        let gamestate = gamestate_lock.get(&room_id).unwrap();
-        let user_lock = gamestate.users.read().await;
-        let user = user_lock.get(&user_id).unwrap();
-        let msg = match result {
-            Ok(msg) => msg,
-            Err(e) => {
-                eprintln!("websocket error(uid={}): {}", user.uuid, e);
-                break;
-            }
-        };
-        match parse_message_to_action(&gamestate, msg, &user).await {
+        match parse_message_to_action(&gamestate, msg, &user_id).await {
             Ok(_) => (),
             Err(e) => println!("Error: {:#?}", e),
         }
@@ -182,7 +162,7 @@ async fn introduce(
     return Ok((room_id, user_id));
 }
 
-pub async fn user_disconnected(gamestate: &Gamestate, uuid: u128) {
+pub async fn user_disconnected(gamestate: &Gamestate, uuid: &u128) {
     println!(
         "user {} disconnected, leaving their data in table in case of rejoin",
         uuid
@@ -213,38 +193,38 @@ async fn send_gamestate_to_all(gamestate: &Gamestate) {
     }
 }
 
-pub async fn validate_locks(gamestate: &Gamestate) {
-    match gamestate.deck.try_read() {
-        Ok(_) => println!("Deck Read Ok"),
-        Err(_) => println!("Deck Read is locked!"),
-    }
-    match gamestate.users.try_read() {
-        Ok(_) => println!("Users Read Ok"),
-        Err(_) => println!("Users Read is locked!"),
-    }
-    match gamestate.hands.try_read() {
-        Ok(_) => println!("Hands Read Ok"),
-        Err(_) => println!("Hands Read is locked!"),
-    }
-    match gamestate.discard.try_read() {
-        Ok(_) => println!("Discard Read Ok"),
-        Err(_) => println!("Discard Read is locked!"),
-    }
+// pub async fn validate_locks(gamestate: &Gamestate) {
+//     match gamestate.deck.try_read() {
+//         Ok(_) => println!("Deck Read Ok"),
+//         Err(_) => println!("Deck Read is locked!"),
+//     }
+//     match gamestate.users.try_read() {
+//         Ok(_) => println!("Users Read Ok"),
+//         Err(_) => println!("Users Read is locked!"),
+//     }
+//     match gamestate.hands.try_read() {
+//         Ok(_) => println!("Hands Read Ok"),
+//         Err(_) => println!("Hands Read is locked!"),
+//     }
+//     match gamestate.discard.try_read() {
+//         Ok(_) => println!("Discard Read Ok"),
+//         Err(_) => println!("Discard Read is locked!"),
+//     }
 
-    match gamestate.deck.try_write() {
-        Ok(_) => println!("Deck Write Ok"),
-        Err(_) => println!("Deck Write is locked!"),
-    }
-    match gamestate.users.try_write() {
-        Ok(_) => println!("Users write Ok"),
-        Err(_) => println!("Users write is locked!"),
-    }
-    match gamestate.hands.try_write() {
-        Ok(_) => println!("Hands write Ok"),
-        Err(_) => println!("Hands write is locked!"),
-    }
-    match gamestate.discard.try_write() {
-        Ok(_) => println!("Discard write Ok"),
-        Err(_) => println!("Discard write is locked!"),
-    }
-}
+//     match gamestate.deck.try_write() {
+//         Ok(_) => println!("Deck Write Ok"),
+//         Err(_) => println!("Deck Write is locked!"),
+//     }
+//     match gamestate.users.try_write() {
+//         Ok(_) => println!("Users write Ok"),
+//         Err(_) => println!("Users write is locked!"),
+//     }
+//     match gamestate.hands.try_write() {
+//         Ok(_) => println!("Hands write Ok"),
+//         Err(_) => println!("Hands write is locked!"),
+//     }
+//     match gamestate.discard.try_write() {
+//         Ok(_) => println!("Discard write Ok"),
+//         Err(_) => println!("Discard write is locked!"),
+//     }
+// }

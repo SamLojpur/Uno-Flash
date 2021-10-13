@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { useSpring, animated } from "react-spring";
 // TODO stop using 2 icon libs
 import { Lock } from "react-bootstrap-icons";
