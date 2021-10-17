@@ -9,6 +9,7 @@ const WinnerModal = ({ gamestate, startGame, setName, show, onHide }) => {
   );
 
   const [username, setUsername] = useState(myUsername);
+
   return (
     <Modal show={show} onHide={onHide} centered>
       <Modal.Header>

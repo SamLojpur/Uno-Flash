@@ -110,6 +110,11 @@ const Game = ({ user }) => {
       winnerText = winner + " wins!";
     }
   }
+  console.log(gamestate);
+  console.log(
+    "q",
+    gamestate.users.find((user) => user.table_pos === 0)
+  );
 
   return (
     <>
@@ -128,53 +133,77 @@ const Game = ({ user }) => {
         winnerText={winnerText}
         onHide={() => history.replace("/")}
       />
-      <Hand
-        handId="left"
-        cards={gamestate.hands[(gamestate.table_pos + 1) % 4] || []}
-        isVertical={true}
-        sendToDiscard={sendToDiscard}
-      />
-      <div
-        style={{
-          display: "flex",
-          flexGrow: 1,
-          flexDirection: "column",
-
-          justifyContent: "space-between",
-          alignItems: "center",
-          width: "100%",
-        }}
-      >
+      <div style={{ display: "flex", width: "100vw" }}>
         <Hand
-          handId="top"
-          cards={gamestate.hands[(gamestate.table_pos + 2) % 4] || []}
+          handId="left"
+          cards={gamestate.hands[(gamestate.table_pos + 1) % 4] || []}
+          user={gamestate.users.find(
+            (user) => user.table_pos === (gamestate.table_pos + 1) % 4
+          )}
+          handPos={1}
           sendToDiscard={sendToDiscard}
+          style={{
+            flexShrink: 0,
+          }}
         />
         <div
           style={{
             display: "flex",
             flexGrow: 1,
+            flexShrink: 1,
+            flexDirection: "column",
+            maxWidth: "calc(100vw - 8rem)",
 
-            justifyContent: "center",
+            justifyContent: "space-between",
             alignItems: "center",
             width: "100%",
           }}
         >
-          <Discard cards={gamestate.discard} />
-          <Deck cards={gamestate.deck} drawCard={drawCard} />
+          <Hand
+            handId="top"
+            cards={gamestate.hands[(gamestate.table_pos + 2) % 4] || []}
+            user={gamestate.users.find(
+              (user) => user.table_pos === (gamestate.table_pos + 2) % 4
+            )}
+            handPos={2}
+            sendToDiscard={sendToDiscard}
+            style={{
+              flexShrink: 0,
+            }}
+          />
+          <div
+            style={{
+              display: "flex",
+              flexGrow: 1,
+
+              justifyContent: "center",
+              alignItems: "center",
+              width: "100%",
+            }}
+          >
+            <Discard cards={gamestate.discard} />
+            <Deck cards={gamestate.deck} drawCard={drawCard} />
+          </div>
+          <Hand
+            handId={gamestate.table_pos}
+            cards={gamestate.hands[gamestate.table_pos] || []}
+            user={gamestate.users.find(
+              (user) => user.table_pos === gamestate.table_pos
+            )}
+            handPos={0}
+            sendToDiscard={sendToDiscard}
+          />
         </div>
         <Hand
-          handId={gamestate.table_pos}
-          cards={gamestate.hands[gamestate.table_pos] || []}
+          handId={(gamestate.table_pos + 3) % 4}
+          cards={gamestate.hands[(gamestate.table_pos + 3) % 4] || []}
+          user={gamestate.users.find(
+            (user) => user.table_pos === (gamestate.table_pos + 3) % 4
+          )}
+          handPos={3}
           sendToDiscard={sendToDiscard}
         />
       </div>
-      <Hand
-        handId={(gamestate.table_pos + 3) % 4}
-        cards={gamestate.hands[(gamestate.table_pos + 3) % 4] || []}
-        isVertical={true}
-        sendToDiscard={sendToDiscard}
-      />
     </>
   );
 };

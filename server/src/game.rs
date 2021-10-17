@@ -203,16 +203,24 @@ async fn draw_card(
 ) -> Result<(), UnoError> {
     let mut hand = hands.get(&hand_pos).unwrap().clone();
     for _ in 0..number {
-        let mut card = deck.pop().unwrap();
-        card.lock_expiry = SystemTime::now() + Duration::from_secs(3);
-        hand.push(card);
-        println!("{}", deck.len());
-        if deck.len() <= 0 {
+        let mut card_option = deck.pop();
+        if card_option.is_none() {
+            // if deck.len() <= 0 {
             deck.append(discard);
             discard.push(deck.pop().unwrap());
             let mut rng = rand::thread_rng();
             deck.shuffle(&mut rng);
+            // }
+            if deck.len() <= 0 {
+                return Ok(());
+            } else {
+                card_option = deck.pop();
+            }
         }
+        let mut card = card_option.unwrap();
+        card.lock_expiry = SystemTime::now() + Duration::from_secs(3);
+        hand.push(card);
+        println!("{}", deck.len());
     }
     hands.insert(hand_pos, hand);
     Ok(())
