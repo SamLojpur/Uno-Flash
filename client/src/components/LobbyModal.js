@@ -2,19 +2,76 @@ import { Modal } from "react-bootstrap";
 import { useState } from "react";
 import { Button, InputGroup, FormControl } from "react-bootstrap";
 import _ from "lodash";
+import { Link45deg } from "react-bootstrap-icons";
+import HelpButton from "./HelpButton";
 
-const WinnerModal = ({ gamestate, startGame, setName, show, onHide }) => {
+const LobbyModal = ({
+  gamestate,
+  startGame,
+  setName,
+  show,
+  onHide,
+  onHelp,
+}) => {
   const myUsername = gamestate.users.find(
     ({ uuid }) => uuid === gamestate.room_id
   );
 
   const [username, setUsername] = useState(myUsername);
+  const [linkCopied, setLinkCopied] = useState(false);
   return (
-    <Modal show={show} onHide={onHide} centered>
+    <Modal show={show} onHide={onHide} onHelp={onHelp} centered>
       <Modal.Header>
-        <Modal.Title>Players</Modal.Title>
+        <Modal.Title style={{ width: "100%" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              width: "100%",
+            }}
+          >
+            <div>Players</div>
+            <HelpButton onClick={onHelp} isModal={true} />
+          </div>
+        </Modal.Title>
       </Modal.Header>
       <Modal.Body>
+        <Button
+          style={{
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            width: "100%",
+            padding: 0,
+            marginBottom: "1rem",
+          }}
+          variant="link"
+          onClick={() => {
+            navigator.clipboard.writeText(window.location.href);
+            setLinkCopied(true);
+          }}
+        >
+          {linkCopied ? (
+            <>
+              <Link45deg
+                style={{
+                  marginRight: "0.2rem",
+                }}
+              />
+              Copied!
+            </>
+          ) : (
+            <>
+              <Link45deg
+                style={{
+                  marginRight: "0.2rem",
+                }}
+              />
+              {window.location.href}
+            </>
+          )}
+        </Button>
         <form>
           <div className="form-group row">
             {_.sortBy(gamestate.users, "table_pos").map((x, i) => {
@@ -83,4 +140,4 @@ const WinnerModal = ({ gamestate, startGame, setName, show, onHide }) => {
   );
 };
 
-export default WinnerModal;
+export default LobbyModal;

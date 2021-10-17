@@ -34,13 +34,30 @@ pub async fn on_connection(ws: WebSocket, gamestates: GameStatesMutex) {
         .await
         .expect("websocket error during introductions");
 
-    let (room_id, user_id) = match result {
+    let introduction = match result {
         Ok(result) => introduce(&gamestates, result, tx.clone()).await,
         Err(_) => Err(UnoError::InvalidState(
             "websocket error during introductions".to_string(),
         )),
+    };
+
+    if introduction.is_err() {
+        let intro_err = introduction.expect_err("wasnt err");
+        match intro_err {
+            UnoError::TooManyPlayers => {
+                tx.send(Ok(Message::text("too_many_players")))
+                    .expect("Cannot send message");
+            }
+            UnoError::GameStartedAlready => {
+                tx.send(Ok(Message::text("game_started_already")))
+                    .expect("Cannot send message");
+            }
+            _ => {}
+        }
+        return ();
     }
-    .expect("cannot");
+
+    let (room_id, user_id) = introduction.expect("was err");
 
     {
         let gamestate_lock = gamestates.read().await;
@@ -117,6 +134,12 @@ async fn introduce(
     let gamestate = gamestate_lock.get(&room_id).ok_or(UnoError::InvalidRoom)?;
 
     let mut users = gamestate.users.write().await;
+    if users.len() >= 4 {
+        return Err(UnoError::TooManyPlayers);
+    }
+    if *gamestate.game_started.read().await {
+        return Err(UnoError::GameStartedAlready);
+    }
     let user_id = match intro.user_id {
         None => {
             let uuid = Uuid::new_v4().as_u128();

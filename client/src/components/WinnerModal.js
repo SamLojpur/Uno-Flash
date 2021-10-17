@@ -10,5 +10,6 @@ const WinnerModal = ({ winnerText, users, user_id, show, onHide }) => {
     </Modal>
   );
 };
+// name = user.name || `Player ${user.table_pos + 1}`;
 
 export default WinnerModal;

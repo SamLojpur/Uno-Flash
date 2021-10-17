@@ -5,6 +5,8 @@ pub enum UnoError {
     InvalidMove(String),
     InvalidState(String),
     InvalidRoom,
+    TooManyPlayers,
+    GameStartedAlready,
 }
 
 impl From<serde_json::Error> for UnoError {

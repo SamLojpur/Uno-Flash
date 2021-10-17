@@ -4,8 +4,10 @@ import Discard from "./Discard";
 import Deck from "./Deck";
 import Cookies from "js-cookie";
 import { useHistory, useParams } from "react-router-dom";
+
 import WinnerModal from "./WinnerModal";
 import LobbyModal from "./LobbyModal";
+import RulesModal from "./RulesModal";
 
 const array_remove_by_id = (array, id) => {
   const from = get_index_from_id(array, id);
@@ -32,6 +34,7 @@ const Game = ({ user }) => {
     deck: null,
     hands: {},
   });
+  const [showRules, setShowRules] = useState(false);
 
   useEffect(() => {
     let webSocket;
@@ -104,9 +107,8 @@ const Game = ({ user }) => {
     if (gamestate.winner === gamestate.user_id) {
       winnerText = "You win!";
     } else {
-      let winner =
-        gamestate.users.find((user) => gamestate.winner === user.uuid)?.name ||
-        "User " + gamestate.winner;
+      let user = gamestate.users.find((user) => gamestate.winner === user.uuid);
+      let winner = user?.name || `Player ${user.table_pos + 1}`;
       winnerText = winner + " wins!";
     }
   }
@@ -125,6 +127,9 @@ const Game = ({ user }) => {
           setName={setName}
           show={true}
           onHide={() => {}}
+          onHelp={() => {
+            setShowRules(true);
+          }}
         />
       )}
 
@@ -133,6 +138,9 @@ const Game = ({ user }) => {
         winnerText={winnerText}
         onHide={() => history.replace("/")}
       />
+
+      <RulesModal show={showRules} onHide={() => setShowRules(false)} />
+
       <div style={{ display: "flex", width: "100vw" }}>
         <Hand
           handId="left"
@@ -141,7 +149,6 @@ const Game = ({ user }) => {
             (user) => user.table_pos === (gamestate.table_pos + 1) % 4
           )}
           handPos={1}
-          sendToDiscard={sendToDiscard}
           style={{
             flexShrink: 0,
           }}
@@ -152,7 +159,7 @@ const Game = ({ user }) => {
             flexGrow: 1,
             flexShrink: 1,
             flexDirection: "column",
-            maxWidth: "calc(100vw - 8rem)",
+            maxWidth: "calc(100vw - 10rem)",
 
             justifyContent: "space-between",
             alignItems: "center",
@@ -166,7 +173,6 @@ const Game = ({ user }) => {
               (user) => user.table_pos === (gamestate.table_pos + 2) % 4
             )}
             handPos={2}
-            sendToDiscard={sendToDiscard}
             style={{
               flexShrink: 0,
             }}
@@ -201,7 +207,6 @@ const Game = ({ user }) => {
             (user) => user.table_pos === (gamestate.table_pos + 3) % 4
           )}
           handPos={3}
-          sendToDiscard={sendToDiscard}
         />
       </div>
     </>
