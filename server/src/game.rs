@@ -1,6 +1,8 @@
 use crate::card::{Card, Color, Value, COLORS, VALUES};
+use crate::connections::deal_hand;
 use crate::connections::user_disconnected;
 use crate::errors::UnoError;
+use crate::gamestate::reset_gamestate;
 use crate::gamestate::Gamestate;
 use crate::lobby::parse_lobby_string_to_action;
 use crate::User;
@@ -13,9 +15,10 @@ use tokio::sync::RwLockWriteGuard;
 use warp::ws::Message;
 
 #[derive(Serialize, Deserialize, Debug)]
-enum Action {
+pub enum Action {
     Draw(u128),
     Play(u128, Option<Color>),
+    Reset(),
 }
 
 pub fn generate_deck() -> (Vec<Card>, Vec<Card>) {
@@ -89,7 +92,18 @@ pub async fn parse_game_string_to_action(
     match action {
         Action::Draw(val) => draw_card_gamestate(gamestate, user_id, val).await?,
         Action::Play(card_id, color) => play_card(gamestate, user_id, card_id, color).await?,
+        Action::Reset() => reset_game(gamestate).await?,
     }
+    Ok(())
+}
+
+async fn reset_game(gamestate: &Gamestate) -> Result<(), UnoError> {
+    reset_gamestate(gamestate).await;
+    let users = gamestate.users.write().await.clone();
+    for (_uid, user) in users {
+        deal_hand(&gamestate, &user).await;
+    }
+
     Ok(())
 }
 

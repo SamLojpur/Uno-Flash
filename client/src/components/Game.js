@@ -90,6 +90,10 @@ const Game = ({ user }) => {
     webSocket.send(JSON.stringify({ StartGame: [] }));
   };
 
+  const resetGame = () => {
+    webSocket.send(JSON.stringify({ Reset: [] }));
+  };
+
   const setName = (name) => {
     webSocket.send(JSON.stringify({ SetName: name }));
   };
@@ -136,7 +140,7 @@ const Game = ({ user }) => {
       <WinnerModal
         show={!!gamestate.winner}
         winnerText={winnerText}
-        onHide={() => history.replace("/")}
+        onHide={resetGame}
       />
 
       <RulesModal show={showRules} onHide={() => setShowRules(false)} />

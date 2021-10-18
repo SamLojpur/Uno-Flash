@@ -40,3 +40,12 @@ pub fn new_game() -> Gamestate {
         discard: Arc::new(RwLock::new(discard)),
     }
 }
+
+pub async fn reset_gamestate(gamestate: &Gamestate) -> () {
+    let (deck, discard) = generate_deck();
+    *gamestate.game_started.write().await = false;
+    *gamestate.winner.write().await = None;
+    *gamestate.deck.write().await = deck;
+    *gamestate.discard.write().await = discard;
+    *gamestate.hands.write().await = HashMap::new();
+}

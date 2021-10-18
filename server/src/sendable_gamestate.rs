@@ -1,8 +1,10 @@
 use crate::card;
+use crate::game;
 use crate::gamestate;
 use crate::User;
 
 use card::{Card, Color, Value};
+use game::Action;
 use gamestate::Gamestate;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -19,7 +21,7 @@ pub struct SendableGamestate {
     deck: Vec<AnonymousCard>,
     hands: HashMap<u128, PossiblyAnonHand>,
     users: Vec<SendableUser>,
-    test: (SendableCard, Color),
+    test: (SendableCard, Color, Action),
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -154,6 +156,7 @@ pub async fn get_sendable_gamestate(gamestate: &Gamestate, user: &User) -> Senda
             lock_expiry: 0,
         },
         Color::Blue,
+        Action::Reset(),
     );
 
     return SendableGamestate {

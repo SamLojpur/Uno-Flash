@@ -24,10 +24,10 @@ heroku login
 heroku container:login
 ```
 
-Then build and push the docker image
+Then build and push the docker image (from the root folder)
 
 ```
- docker build -t uno-flash-image .
+docker build -t uno-flash-image .
 heroku container:push web
 ```
 
