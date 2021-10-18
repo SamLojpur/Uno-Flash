@@ -174,7 +174,7 @@ async fn play_card(
     }
 
     if discarded_card.value == Value::Skip {
-        for index in 0..write_hands.clone().len().try_into().unwrap() {
+        for index in 0..write_hands.len().try_into().unwrap() {
             if index != table_pos {
                 let mut hand = write_hands[&index].clone();
                 let hand_length = hand.len();
@@ -184,9 +184,12 @@ async fn play_card(
                     .enumerate()
                     .map(|(i, card)| {
                         let mut my_card = card.clone();
+
                         if i * 2 < hand_length {
-                            if my_card.lock_expiry < SystemTime::now() + Duration::from_millis(5) {
-                                my_card.lock_expiry = SystemTime::now() + Duration::from_millis(5);
+                            if my_card.lock_expiry < SystemTime::now() + Duration::from_millis(1500)
+                            {
+                                my_card.lock_expiry =
+                                    SystemTime::now() + Duration::from_millis(1500);
                             }
                         }
 
@@ -234,7 +237,6 @@ async fn draw_card(
         let mut card = card_option.unwrap();
         card.lock_expiry = SystemTime::now() + Duration::from_secs(3);
         hand.push(card);
-        println!("{}", deck.len());
     }
     hands.insert(hand_pos, hand);
     Ok(())
