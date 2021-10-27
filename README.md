@@ -17,6 +17,7 @@ In another terminal:
 
 ## Deploying
 
+### Heroku
 To deploy, first login to heroku
 
 ```
@@ -35,4 +36,11 @@ Finally, deploy the new image
 
 ```
 heroku container:release web
+```
+### Azure/ Private Docker Repo
+
+```
+docker login
+docker build -t samlojpur/uno-flash .
+docker push samlojpur/uno-flash:latest
 ```

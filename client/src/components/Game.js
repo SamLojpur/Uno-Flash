@@ -52,7 +52,6 @@ const Game = ({ user }) => {
       if (Cookies.get("user_id") !== undefined) {
         user_id = Cookies.get("user_id");
       }
-      console.log(url_params.room_id);
       if (url_params.room_id !== "unknown") {
         room_id = url_params.room_id;
       }
@@ -69,7 +68,7 @@ const Game = ({ user }) => {
         history.replace(gamestate.room_id);
       }
       setGamestate(gamestate);
-      console.log(gamestate);
+      // console.log(gamestate);
     };
     setWebSocket(webSocket);
   }, []);
@@ -116,11 +115,6 @@ const Game = ({ user }) => {
       winnerText = winner + " wins!";
     }
   }
-  console.log(gamestate);
-  console.log(
-    "q",
-    gamestate.users.find((user) => user.table_pos === 0)
-  );
 
   return (
     <>

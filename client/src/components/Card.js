@@ -53,10 +53,10 @@ const UnoCard = ({ card, onClick = () => {} }) => {
 
   useEffect(() => {
     if (locked_ms > 0 && locked === false) {
-      console.log("locking card " + card.id + " for " + locked_ms);
+      // console.log("locking card " + card.id + " for " + locked_ms);
       setLocked(true);
       setTimeout(() => {
-        console.log("unlocking" + card.id);
+        // console.log("unlocking" + card.id);
         setLocked(false);
       }, locked_ms);
     }

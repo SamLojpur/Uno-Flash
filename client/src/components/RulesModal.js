@@ -32,7 +32,7 @@ const WinnerModal = ({ show, onHide }) => {
 
   return (
     <Modal show={show} onHide={onHide} centered>
-      <Modal.Header>
+      <Modal.Header closeButton>
         <Modal.Title>Rules</Modal.Title>
       </Modal.Header>
       <Modal.Body>

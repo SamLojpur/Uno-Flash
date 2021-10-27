@@ -6,8 +6,10 @@ use crate::User;
 use futures::StreamExt;
 use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
+use std::time::Duration;
 use tokio::sync::mpsc;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
+use tokio::time;
 use tokio_stream::wrappers::UnboundedReceiverStream;
 use uuid::Uuid;
 use warp::ws::{Message, WebSocket};
@@ -27,19 +29,32 @@ pub async fn on_connection(ws: WebSocket, gamestates: GameStatesMutex) {
     let rx = UnboundedReceiverStream::new(rx);
 
     let (user_ws_tx, mut user_ws_rx) = ws.split();
+    // Todo: handle and delete on disconnect
     tokio::task::spawn(rx.forward(user_ws_tx));
 
     let result = user_ws_rx
         .next()
         .await
         .expect("websocket error during introductions");
-
     let introduction = match result {
         Ok(result) => introduce(&gamestates, result, tx.clone()).await,
         Err(_) => Err(UnoError::InvalidState(
             "websocket error during introductions".to_string(),
         )),
     };
+
+    let ping_tx = tx.clone();
+
+    // Todo: handle and delete on disconnect
+    tokio::task::spawn(async move {
+        let mut interval = time::interval(Duration::from_secs(10));
+        loop {
+            interval.tick().await;
+            ping_tx
+                .send(Ok(Message::ping(Vec::new())))
+                .expect("Cannot ping!");
+        }
+    });
 
     if introduction.is_err() {
         let intro_err = introduction.expect_err("wasnt err");

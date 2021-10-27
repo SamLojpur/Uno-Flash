@@ -2,7 +2,6 @@ import { QuestionCircle } from "react-bootstrap-icons";
 import { Button } from "react-bootstrap";
 
 const HelpButton = ({ onClick, isModal = false }) => {
-  console.log();
   return (
     <Button
       variant="link"

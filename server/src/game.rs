@@ -71,13 +71,15 @@ pub async fn parse_message_to_action(
         return Ok(());
     }
 
-    let string_message = message.to_str()?;
-    println!("incoming message: {}", string_message);
+    if !message.is_pong() {
+        let string_message = message.to_str()?;
+        println!("incoming message: {}", string_message);
 
-    if *gamestate.game_started.read().await {
-        parse_game_string_to_action(&gamestate, &user_id, &string_message).await?;
-    } else {
-        parse_lobby_string_to_action(&gamestate, &user_id, &string_message).await?;
+        if *gamestate.game_started.read().await {
+            parse_game_string_to_action(&gamestate, &user_id, &string_message).await?;
+        } else {
+            parse_lobby_string_to_action(&gamestate, &user_id, &string_message).await?;
+        }
     }
     Ok(())
 }
