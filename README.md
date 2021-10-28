@@ -2,6 +2,7 @@
 
 Welcome to Uno Flash! Uno Flash is just like normal Uno with one exception: There are no turns. All players play their turn as fast as possible, clicking cards that share a color or number with the last discarded card. It can get pretty frantic!
 
+![2021-10-27-204153_5760x1357_scrot](https://user-images.githubusercontent.com/10664941/139177462-e003e4f9-599f-4fd1-a921-4bf302b7e95a.png)
 
 To get started, enter a name and click 'Create Room'. You can invite other players to join your lobby using the link in your lobby. Make sure to give everyone a chance to set their own name before you start.
 
@@ -19,9 +20,6 @@ There are a few special cards to be aware of:
 * "Block" cards add a cooldown to half of each opponent's cards
 * "+2" cards force each other player to draw 2 additional cards
 * "Wild" cards can be played at any time. Click on any corner of them to set the discard pile to that color
-
-![2021-10-27-204153_5760x1357_scrot](https://user-images.githubusercontent.com/10664941/139177462-e003e4f9-599f-4fd1-a921-4bf302b7e95a.png)
-
 
 ## Development
 
