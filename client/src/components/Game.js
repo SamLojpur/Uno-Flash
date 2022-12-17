@@ -43,7 +43,7 @@ const Game = ({ user }) => {
       webSocket = new WebSocket("ws://127.0.0.1:3030/ws/");
     } else {
       console.log("connecting to production server");
-      webSocket = new WebSocket("wss://uno-flash.herokuapp.com/ws/");
+      webSocket = new WebSocket("wss://seal-app-63vxr.ondigitalocean.app/ws/");
     }
 
     webSocket.onopen = (event) => {
